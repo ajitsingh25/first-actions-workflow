@@ -19,3 +19,21 @@ jobs:
         run: |
             echo "📁 Listing files in ${{ github.repository }}:"
             tree
+  metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate output
+        id: meta
+        run: |
+          echo "DEPLOY_TIME=$(date -u)" >> $GITHUB_ENV
+          echo "commit_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::${GITHUB_SHA}"  # Hides SHA from logs
+
+      - name: Use outputs
+        run: |
+          echo "This workflow ran at $DEPLOY_TIME"
+          echo "Commit: ${{ steps.meta.outputs.commit_sha }}"
+
+      - name: Print GitHub context
+        run: |
+          echo "Triggered by ${{ github.actor }} on branch ${{ github.ref }}"
