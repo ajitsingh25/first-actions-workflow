@@ -6,19 +6,59 @@ on:
   workflow_dispatch:
 
 jobs:
-  say-hello:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Say Hello
-        run: echo "I am learning GitHub Actions!"
+  # Matrix job: test across Node versions
+  test:
+    name: Test on Node ${{ matrix.node }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [14, 16]
+        os: [ubuntu-latest, macos-latest]
+        exclude:
+          - os: macos-latest
+            node: 14   # Skip macOS + Node 14 to reduce matrix load
 
-      - name: Checkout repository
+    steps:
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: List files in repository
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Run tests
         run: |
-            echo "📁 Listing files in ${{ github.repository }}:"
-            tree
+          echo "Running tests on ${{ matrix.os }} with Node ${{ matrix.node }}"
+          npm install
+          npm test
+
+  # Build job depends on test
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TYPE: ${{ inputs.build_type || 'debug' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build app
+        run: |
+          echo "Build type: $BUILD_TYPE"
+          npm run build -- --mode=$BUILD_TYPE
+
+  # Deploy job runs only on main branch and if user selected deploy
+  deploy:
+    needs: build
+    if: ${{ github.ref == 'refs/heads/main' && inputs.run_deploy == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploying to Production
+        run: echo "Deploying to production server..."
+        
   metadata:
     needs: say-hello
     runs-on: ubuntu-latest
