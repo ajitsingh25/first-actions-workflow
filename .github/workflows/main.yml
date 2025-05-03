@@ -10,3 +10,6 @@ jobs:
     steps:
       - name: Say Hello
         run: echo "I am learning GitHub Actions!"
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
